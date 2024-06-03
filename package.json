@@ -4,7 +4,8 @@
   "description": "",
   "main": "app.js",
   "scripts": {
-    "start": "nodemon app.js"
+    "start": "nodemon app.js",
+    "test": "jest"
   },
   "author": "jeremyMcdr",
   "license": "ISC",
@@ -16,5 +17,9 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.4.1",
     "nodemon": "^3.1.2"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^7.0.0"
   }
 }

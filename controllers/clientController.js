@@ -143,14 +143,18 @@ exports.deleteClient = async (req, res) => {
             return res.status(403).json({ msg: 'Authorization denied' });
         }
 
+        console.log('Delete request received for client ID:', req.params.id); // Add this line
+
         let client = await Client.findById(req.params.id);
         if (!client) {
+            console.log('Client not found'); // Add this line
             return res.status(404).json({ msg: 'Client not found' });
         }
 
-        await client.remove();
+        await client.deleteOne(); // Use deleteOne instead of remove
         res.json({ msg: 'Client removed' });
     } catch (err) {
+        console.error('Error while deleting client:', err); // Add this line
         res.status(500).send('Server error');
     }
 };
