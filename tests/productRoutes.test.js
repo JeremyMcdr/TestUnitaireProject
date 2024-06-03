@@ -2,19 +2,16 @@ const request = require('supertest');
 const express = require('express');
 const mongoose = require('mongoose');
 const productRoutes = require('../routes/productRoutes');
-const clientRoutes = require('../routes/clientRoutes');
-require('dotenv').config(); // Load environment variables
+const Product = require('../models/product');
+const jwt = require('jsonwebtoken');
 
 const app = express();
 app.use(express.json());
 app.use('/api', productRoutes);
-app.use('/api', clientRoutes);
-
-let token; // To store the token for authenticated requests
 
 // Mocking the auth middleware
 jest.mock('../middleware/auth', () => (req, res, next) => {
-    req.user = { id: 'mockUserId', role: 'admin' }; // Mock user as admin
+    req.user = { role: 'admin' }; // Mock user as admin
     next();
 });
 jest.mock('../middleware/adminAuth', () => (req, res, next) => {
@@ -22,23 +19,10 @@ jest.mock('../middleware/adminAuth', () => (req, res, next) => {
 });
 
 beforeAll(async () => {
-    jest.setTimeout(30000); // Set timeout to 30 seconds
-    const dbURI = `${process.env.MONGO_URI_TEST}?authSource=admin`; // Specify authSource if needed
-    console.log(dbURI);
+    jest.setTimeout(30000);
+    const dbURI = `${process.env.MONGO_URI_TEST}?authSource=admin`;
     await mongoose.connect(dbURI);
-
-    // Create an admin client
-    const res = await request(app)
-        .post('/api/clients')
-        .send({
-            name: 'Admin User',
-            email: 'admin@example.com',
-            password: 'adminpassword',
-            shippingAddress: '123 Admin St',
-            billingAddress: '123 Admin St',
-            role: 'admin'
-        });
-    token = res.body.token; // Store the token for use in tests
+    await Product.deleteMany({});
 });
 
 afterAll(async () => {
@@ -51,7 +35,6 @@ describe('Product API', () => {
     it('should create a new product', async () => {
         const res = await request(app)
             .post('/api/products')
-            .set('Authorization', `Bearer ${token}`)
             .send({
                 name: 'Test Product',
                 category: 'Test Category',
@@ -65,17 +48,13 @@ describe('Product API', () => {
     });
 
     it('should retrieve all products', async () => {
-        const res = await request(app)
-            .get('/api/products')
-            .set('Authorization', `Bearer ${token}`);
+        const res = await request(app).get('/api/products');
         expect(res.statusCode).toEqual(200);
         expect(res.body).toBeInstanceOf(Array);
     });
 
     it('should retrieve a product by id', async () => {
-        const res = await request(app)
-            .get(`/api/products/${productId}`)
-            .set('Authorization', `Bearer ${token}`);
+        const res = await request(app).get(`/api/products/${productId}`);
         expect(res.statusCode).toEqual(200);
         expect(res.body).toHaveProperty('_id', productId);
     });
@@ -83,7 +62,6 @@ describe('Product API', () => {
     it('should update a product', async () => {
         const res = await request(app)
             .put(`/api/products/${productId}`)
-            .set('Authorization', `Bearer ${token}`)
             .send({
                 name: 'Updated Product',
                 category: 'Updated Category',
@@ -95,9 +73,7 @@ describe('Product API', () => {
     });
 
     it('should delete a product', async () => {
-        const res = await request(app)
-            .delete(`/api/products/${productId}`)
-            .set('Authorization', `Bearer ${token}`);
+        const res = await request(app).delete(`/api/products/${productId}`);
         expect(res.statusCode).toEqual(200);
         expect(res.body).toHaveProperty('message', 'Product deleted successfully');
     });
